@@ -91,6 +91,7 @@ void Settings::load() {
         else if (key == L"showLabels")        showLabels      = toBool(val, showLabels);
         else if (key == L"showRecycleBin")    showRecycleBin  = toBool(val, showRecycleBin);
         else if (key == L"backdropBlur")      backdropBlur    = toBool(val, backdropBlur);
+        else if (key == L"hideWindowsTaskbar") hideWindowsTaskbar = toBool(val, hideWindowsTaskbar);
         else if (key == L"theme")             theme           = val;
         else if (key == L"pin" && !val.empty()) pinned.push_back(val);
     }
@@ -131,6 +132,7 @@ bool Settings::save() const {
     fwprintf(f, L"showLabels       = %s\n", showLabels ? L"true" : L"false");
     fwprintf(f, L"showRecycleBin   = %s\n", showRecycleBin ? L"true" : L"false");
     fwprintf(f, L"backdropBlur     = %s\n", backdropBlur ? L"true" : L"false");
+    fwprintf(f, L"hideWindowsTaskbar = %s\n", hideWindowsTaskbar ? L"true" : L"false");
     fwprintf(f, L"\n# Dock order, one absolute path per line.\n");
     for (const auto& p : pinned) {
         fwprintf(f, L"pin = %s\n", p.c_str());

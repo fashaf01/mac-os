@@ -103,15 +103,25 @@ Theme Theme::resolve(const std::wstring& mode) {
 }
 
 bool systemUsesDarkTheme() {
-    DWORD value = 1;           // Windows default is light apps -> 1
-    DWORD size  = sizeof(value);
-    const LSTATUS st = RegGetValueW(
-        HKEY_CURRENT_USER,
-        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-        L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &value, &size);
+    // A dock is shell furniture, not an app window, so it should match the
+    // taskbar and Start menu rather than app chrome. Windows keeps those as
+    // two independent settings, and "dark taskbar with light apps" is a
+    // common combination -- reading the app key there makes the dock the only
+    // pale thing on the screen. So SystemUsesLightTheme wins, and the app key
+    // is only a fallback for builds that predate it.
+    const wchar_t* kPersonalize =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 
-    if (st != ERROR_SUCCESS) return true; // fall back to dark: it is the safer look
-    return value == 0;
+    for (const wchar_t* name : { L"SystemUsesLightTheme", L"AppsUseLightTheme" }) {
+        DWORD value = 1;
+        DWORD size  = sizeof(value);
+        if (RegGetValueW(HKEY_CURRENT_USER, kPersonalize, name,
+                         RRF_RT_REG_DWORD, nullptr, &value, &size) == ERROR_SUCCESS) {
+            return value == 0;
+        }
+    }
+
+    return true;   // neither key present: dark is the safer default
 }
 
 void auditContrast(const Theme& theme) {

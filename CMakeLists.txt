@@ -35,6 +35,7 @@ add_executable(macdock WIN32
     src/platform/AppBar.cpp
     src/platform/AcrylicBackdrop.cpp
     src/platform/TrayIcon.cpp
+    src/platform/Taskbar.cpp
 
     src/dock/DockModel.cpp
     src/dock/DockLayout.cpp

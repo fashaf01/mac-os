@@ -40,6 +40,11 @@ cheap one.
 
 ## What works now
 
+- **Replaces the Windows taskbar** rather than sitting beside it. The taskbar
+  is switched to auto-hide (which frees the screen space it reserved) and its
+  window is hidden (so it does not slide back in and fight the dock for the
+  bottom edge). Explorer keeps running throughout, and the taskbar is put back
+  exactly as it was when MacDock exits.
 - **Dock** with pinned apps, running-app indicators, and temporary tiles for
   running apps you have not pinned.
 - **Cursor magnification** with the raised-cosine falloff and the anchoring
@@ -84,7 +89,15 @@ cmake --build build --config Release
 build\Release\MacDock.exe
 ```
 
-Quit it from the tray icon.
+Quit it by right-clicking the divider next to the Recycle Bin → **Quit
+MacDock**. (The notification area goes away with the taskbar, so that menu —
+not the tray icon — is the dock's own control panel.)
+
+**If you ever lose the taskbar:** right-click that same divider → *Show
+Windows taskbar*. If MacDock is not running at all, press
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, find **Windows Explorer** in
+the list, and click **Restart**. Nothing is permanent — the taskbar is only
+hidden, never removed.
 
 ## Tests
 
@@ -109,7 +122,8 @@ menu. Every key is documented in [BUILD.md](BUILD.md#settings).
 - **Window title bars are untouched.** macOS traffic lights on other apps'
   windows would need injection or hooks into processes we do not own, which
   antivirus flags and Windows updates break. It is deliberately out of scope.
-- **The Windows taskbar is still there.** Hiding it belongs to Phase 4.
+- **The Start menu still belongs to Windows.** The <kbd>Win</kbd> key still
+  opens it, and it still looks like Windows. A macOS-style menu bar is Phase 3.
 - **Blur is best-effort.** The API behind it is undocumented; when it is
   unavailable, or transparency effects are off in Windows Settings, the dock
   falls back to painted glass. Set `backdropBlur = false` to force that.

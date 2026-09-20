@@ -23,6 +23,7 @@ struct Settings {
     bool  showLabels          = true;
     bool  showRecycleBin      = true;
     bool  backdropBlur        = true;  // real DWM blur behind the panel
+    bool  hideWindowsTaskbar  = true;  // the dock replaces it rather than sitting beside it
     std::wstring theme        = L"auto"; // auto | dark | light
 
     std::vector<std::wstring> pinned;   // absolute exe paths, in dock order

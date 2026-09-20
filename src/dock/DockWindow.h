@@ -8,6 +8,7 @@
 #include "platform/AcrylicBackdrop.h"
 #include "platform/AppBar.h"
 #include "platform/IconLoader.h"
+#include "platform/Taskbar.h"
 #include "platform/TrayIcon.h"
 #include "platform/WindowWatcher.h"
 #include "render/CompositionWindow.h"
@@ -43,7 +44,10 @@ private:
     void onMouseLeave();
     void onClick(int index);
     void showItemMenu(int index, POINT screenPt);
+    void showDockMenu(POINT screenPt);
     void showTrayMenu(POINT screenPt);
+    int  runMenu(HMENU menu, POINT screenPt, UINT extraFlags);
+    void applyTaskbarSetting();
 
     // --- state ----------------------------------------------------------
     void scheduleRefresh();
@@ -68,6 +72,7 @@ private:
     platform::WindowWatcher  watcher_;
     platform::AppBar         appBar_;
     platform::TrayIcon       tray_;
+    platform::Taskbar        taskbar_;
     platform::AcrylicBackdrop backdrop_;
     TextRenderer             text_;
 

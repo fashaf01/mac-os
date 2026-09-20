@@ -43,15 +43,20 @@ startup contrast audit.
 
 ## Running
 
-Double-click `MacDock.exe`. It appears at the bottom of your primary monitor
-and puts an icon in the notification area.
+Double-click `MacDock.exe`. The Windows taskbar disappears and the dock takes
+the bottom of your primary monitor.
+
+The <kbd>Win</kbd> key still opens the Start menu, so nothing becomes
+unreachable.
 
 - **Left-click** a tile — launch the app, or bring it forward. Clicking an app
   that already has several windows cycles through them.
 - **Right-click** a tile — Open, Show in File Explorer, Keep in / Remove from
   Dock.
-- **Right-click the tray icon** — open the settings file, reload settings, or
-  quit.
+- **Right-click the divider** (the line next to the Recycle Bin) — show/hide
+  the Windows taskbar, open the settings file, reload settings, or quit. This
+  is the dock's own menu, and it stays reachable when the notification area is
+  hidden along with the taskbar.
 
 Only one copy runs at a time; launching it again is a no-op.
 
@@ -60,9 +65,26 @@ Only one copy runs at a time; launching it again is a no-op.
 Press <kbd>Win</kbd>+<kbd>R</kbd>, run `shell:startup`, and put a shortcut to
 `MacDock.exe` in the folder that opens.
 
+### Getting the Windows taskbar back
+
+Three ways, in order of convenience:
+
+1. **Right-click the divider** next to the Recycle Bin → **Show Windows
+   taskbar**. The setting is saved, so it stays off next launch.
+2. **Quit MacDock** — it restores the taskbar on the way out, including on
+   log-off and shutdown.
+3. **If MacDock was force-killed** and the taskbar is still missing: press
+   <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, find **Windows Explorer**,
+   click **Restart**. Or set `hideWindowsTaskbar = false` in the settings file
+   and launch MacDock again.
+
+The taskbar is only ever *hidden* — auto-hide plus `ShowWindow(SW_HIDE)`.
+Explorer keeps running the whole time and nothing is deleted or reconfigured
+permanently.
+
 ### Uninstall
 
-Quit from the tray icon and delete the exe. The dock releases its reserved
+Quit from the dock menu (which restores your taskbar) and delete the exe. The dock releases its reserved
 screen space on exit. To remove its settings too, delete
 `%APPDATA%\MacDock`.
 
@@ -88,6 +110,7 @@ screen space on exit. To remove its settings too, delete
 | `showLabels` | `true` | Name label above the hovered tile |
 | `showRecycleBin` | `true` | Recycle Bin tile at the end |
 | `backdropBlur` | `true` | Real DWM blur behind the panel; `false` uses painted glass |
+| `hideWindowsTaskbar` | `true` | Replace the Windows taskbar instead of sitting beside it |
 | `pin` | — | One absolute path per line, in dock order |
 
 `pin` lines are the dock's contents and order. They are rewritten whenever you

@@ -25,9 +25,10 @@ A 24 px bar across the top of the screen:
   push-based; the clock is the only timer, and it fires once a minute.
 - Reuses the Phase 1 composition window and design tokens as-is.
 
-## Phase 4 — the desktop layer
+## Phase 4 — the desktop layer (started)
 
-- Hide the Windows taskbar and hand its screen space to our own bars.
+- ✅ Hide the Windows taskbar and hand its screen space to the dock, restoring
+  it on exit, on log-off and on demand from the dock's own menu.
 - Intercept the Win key so Start does not appear over the desktop.
 - Desktop icon grid with snap-to-grid and rubber-band selection.
 - macOS-style desktop context menu.

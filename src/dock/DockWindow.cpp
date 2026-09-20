@@ -42,6 +42,7 @@ enum MenuId : UINT {
     kMenuQuitApp,
     kMenuOpenBin = 210,
     kMenuEmptyBin,
+    kMenuToggleTaskbar = 220,
 };
 
 D2D1_COLOR_F toD2D(const Color& c) {
@@ -90,6 +91,7 @@ bool DockWindow::initialize(GraphicsDevice* gfx) {
         appBar_.registerBar(hwnd_, WM_MD_APPBAR);
     }
     tray_.add(hwnd_, WM_MD_TRAY, L"MacDock");
+    applyTaskbarSetting();
 
     if (settings_.backdropBlur) {
         if (backdrop_.create(hwnd_)) {
@@ -129,6 +131,10 @@ bool DockWindow::initialize(GraphicsDevice* gfx) {
 }
 
 void DockWindow::shutdown() {
+    // First thing, before anything else can fail: the user must not be left
+    // without a taskbar because something further down threw.
+    taskbar_.restore();
+
     stopAnimating();
     watcher_.stop();
 
@@ -209,26 +215,39 @@ void DockWindow::applyGeometry() {
     const int windowH = static_cast<int>(std::ceil(dockWindowHeight(m, tooltipHeightPx())));
 
     RECT monitorRect{ 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+    RECT workRect = monitorRect;
     if (HMONITOR monitor = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTOPRIMARY)) {
         MONITORINFO mi{};
         mi.cbSize = sizeof(mi);
-        if (GetMonitorInfoW(monitor, &mi)) monitorRect = mi.rcMonitor;
+        if (GetMonitorInfoW(monitor, &mi)) {
+            monitorRect = mi.rcMonitor;
+            workRect    = mi.rcWork;
+        }
+    }
+
+    // Reserve space first, then anchor to the rectangle the shell hands back:
+    // it already avoids the taskbar and any other app bar. Anchoring to the
+    // monitor's own bottom edge instead puts the dock *underneath* the
+    // taskbar, which hides the icons and leaves an empty strip showing.
+    //
+    // When we are not reserving (auto-hide, or the user turned it off) the
+    // work area is the right answer, since it excludes the taskbar and, as we
+    // reserved nothing, nothing of ours.
+    int anchorBottom = workRect.bottom;
+    if (appBar_.registered() && settings_.reserveWorkArea && !settings_.autoHide) {
+        const int reserve = static_cast<int>(std::ceil(dockPanelHeight(m) + m.bottomMargin));
+        const RECT granted = appBar_.reserveBottom(hwnd_, reserve);
+        if (granted.bottom > granted.top) anchorBottom = granted.bottom;
     }
 
     const int width = monitorRect.right - monitorRect.left;
 
     SetWindowPos(hwnd_, HWND_TOPMOST,
-                 monitorRect.left, monitorRect.bottom - windowH,
+                 monitorRect.left, anchorBottom - windowH,
                  width, windowH,
                  SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
     resizeSurface(width, windowH);
-
-    if (appBar_.registered() && !settings_.autoHide) {
-        const int reserve = static_cast<int>(std::ceil(dockPanelHeight(m) + m.bottomMargin));
-        appBar_.reserveBottom(hwnd_, reserve);
-    }
-
     invalidate();
 }
 
@@ -338,6 +357,64 @@ void DockWindow::onClick(int index) {
     invalidate();
 }
 
+int DockWindow::runMenu(HMENU menu, POINT screenPt, UINT extraFlags) {
+    // A window with WS_EX_NOACTIVATE never takes the foreground on its own, and
+    // a popup menu whose owner is not foreground refuses to dismiss when the
+    // user clicks away. Claiming it here, and poking the queue afterwards, is
+    // the documented workaround.
+    SetForegroundWindow(hwnd_);
+    const int choice = static_cast<int>(TrackPopupMenuEx(
+        menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON | extraFlags,
+        screenPt.x, screenPt.y, hwnd_, nullptr));
+    DestroyMenu(menu);
+    PostMessageW(hwnd_, WM_NULL, 0, 0);
+    return choice;
+}
+
+void DockWindow::applyTaskbarSetting() {
+    if (settings_.hideWindowsTaskbar) {
+        taskbar_.hide();
+    } else {
+        taskbar_.restore();
+    }
+    applyGeometry();
+}
+
+// Right-clicking the dock itself, rather than one of its tiles. With the
+// Windows taskbar hidden the notification area goes with it, so this menu is
+// the only way to reach settings or quit -- it must always be reachable.
+void DockWindow::showDockMenu(POINT screenPt) {
+    HMENU menu = CreatePopupMenu();
+    if (!menu) return;
+
+    AppendMenuW(menu, MF_STRING, kMenuToggleTaskbar,
+                taskbar_.hidden() ? L"Show Windows taskbar" : L"Hide Windows taskbar");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, kMenuOpenSettings, L"Open settings file\u2026");
+    AppendMenuW(menu, MF_STRING, kMenuReload,       L"Reload settings");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, kMenuQuit,         L"Quit MacDock");
+
+    switch (runMenu(menu, screenPt, TPM_BOTTOMALIGN)) {
+    case kMenuToggleTaskbar:
+        settings_.hideWindowsTaskbar = !taskbar_.hidden();
+        settings_.save();
+        applyTaskbarSetting();
+        break;
+    case kMenuOpenSettings:
+        platform::openShellLocation(Settings::configPath());
+        break;
+    case kMenuReload:
+        reloadSettings();
+        break;
+    case kMenuQuit:
+        PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+        break;
+    default:
+        break;
+    }
+}
+
 void DockWindow::showItemMenu(int index, POINT screenPt) {
     if (index < 0 || static_cast<size_t>(index) >= model_.size()) return;
     const DockItem& item = model_.items()[static_cast<size_t>(index)];
@@ -359,16 +436,7 @@ void DockWindow::showItemMenu(int index, POINT screenPt) {
                     item.pinned ? L"Remove from Dock" : L"Keep in Dock");
     }
 
-    // A non-activating window has to take the foreground itself or the menu
-    // will not dismiss when the user clicks elsewhere.
-    SetForegroundWindow(hwnd_);
-    const int choice = static_cast<int>(TrackPopupMenuEx(
-        menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN,
-        screenPt.x, screenPt.y, hwnd_, nullptr));
-    DestroyMenu(menu);
-    PostMessageW(hwnd_, WM_NULL, 0, 0);
-
-    switch (choice) {
+    switch (runMenu(menu, screenPt, TPM_BOTTOMALIGN)) {
     case kMenuOpenItem:
     case kMenuOpenBin:
         onClick(index);
@@ -416,14 +484,7 @@ void DockWindow::showTrayMenu(POINT screenPt) {
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, kMenuQuit,         L"Quit MacDock");
 
-    SetForegroundWindow(hwnd_);
-    const int choice = static_cast<int>(TrackPopupMenuEx(
-        menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON,
-        screenPt.x, screenPt.y, hwnd_, nullptr));
-    DestroyMenu(menu);
-    PostMessageW(hwnd_, WM_NULL, 0, 0);
-
-    switch (choice) {
+    switch (runMenu(menu, screenPt, 0)) {
     case kMenuOpenSettings:
         platform::openShellLocation(Settings::configPath());
         break;
@@ -463,7 +524,7 @@ void DockWindow::reloadSettings() {
 
     reveal_.snapTo(settings_.autoHide && !mouseInside_ ? 0.0f : 1.0f);
 
-    applyGeometry();
+    applyTaskbarSetting();   // also calls applyGeometry()
     invalidate();
 }
 
@@ -721,10 +782,15 @@ LRESULT DockWindow::onMessage(UINT msg, WPARAM wp, LPARAM lp, bool& handled) {
         const DockLayoutResult layout = buildLayout();
         const int index = hitTestDock(layout, static_cast<float>(GET_X_LPARAM(lp)),
                                       static_cast<float>(GET_Y_LPARAM(lp)));
-        if (index >= 0) {
-            POINT screenPt{ GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
-            ClientToScreen(hwnd_, &screenPt);
+        POINT screenPt{ GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
+        ClientToScreen(hwnd_, &screenPt);
+
+        const bool onTile = index >= 0 &&
+                            model_.items()[static_cast<size_t>(index)].interactive();
+        if (onTile) {
             showItemMenu(index, screenPt);
+        } else {
+            showDockMenu(screenPt);
         }
         return 0;
     }
@@ -789,6 +855,11 @@ LRESULT DockWindow::onMessage(UINT msg, WPARAM wp, LPARAM lp, bool& handled) {
     case WM_DISPLAYCHANGE:
         applyGeometry();
         return 0;
+
+    case WM_ENDSESSION:
+        // Logging off or shutting down: give the taskbar back before we go.
+        if (wp) taskbar_.restore();
+        break;
 
     case WM_CLOSE:
         PostQuitMessage(0);
