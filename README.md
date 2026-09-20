@@ -60,12 +60,14 @@ cheap one.
 
 Honest accounting of what has and has not been run:
 
-- ✅ **Compiles and links** into a Windows PE64 binary, warning-clean at
-  `-Wall -Wextra -Wshadow`.
-- ✅ **Layout and contrast maths are tested**, including the property that the
-  icon under the cursor stays under the cursor (`tests/`).
-- ✅ **CI builds it with MSVC** in Debug and Release on every push, runs the
-  tests, and uploads `MacDock.exe` as an artifact.
+- ✅ **Builds with MSVC 19.51** on `windows-latest`, Debug and Release, on
+  every push. Also links clean under GCC/mingw at `-Wall -Wextra -Wshadow`.
+- ✅ **Tests pass in CI** on both toolchains — the magnification maths
+  (including the property that the icon under the cursor stays under the
+  cursor) and the WCAG contrast maths.
+- ✅ **A prebuilt `MacDock.exe`** is attached to every green Release run in
+  [Actions](https://github.com/fashaf01/mac-os/actions), so you can try it
+  without building.
 - ⚠️ **Not yet run on a real desktop.** Visual behaviour — blur, shadow
   softness, magnification feel, icon sharpness — needs eyes on a screen. The
   RAM and CPU figures above are design targets, not measurements; Phase 5
