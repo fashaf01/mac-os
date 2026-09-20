@@ -57,6 +57,9 @@ target_compile_options(macdock PRIVATE
 )
 
 target_link_options(macdock PRIVATE
+    # res/macdock.rc already embeds the application manifest. Without this the
+    # linker generates a second one and CVTRES fails with "duplicate resource".
+    /MANIFEST:NO
     $<$<CONFIG:Release>:/LTCG /OPT:REF /OPT:ICF>
 )
 

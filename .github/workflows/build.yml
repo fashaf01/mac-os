@@ -15,7 +15,7 @@ jobs:
         config: [Debug, Release]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Configure
         run: cmake -B build -S . -A x64 -DMACDOCK_BUILD_TESTS=ON
@@ -39,6 +39,6 @@ jobs:
     name: Portable tests (gcc)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run test suites
         run: ./tests/run.sh
