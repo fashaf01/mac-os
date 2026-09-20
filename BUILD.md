@@ -73,10 +73,17 @@ Three ways, in order of convenience:
    taskbar**. The setting is saved, so it stays off next launch.
 2. **Quit MacDock** — it restores the taskbar on the way out, including on
    log-off and shutdown.
-3. **If MacDock was force-killed** and the taskbar is still missing: press
-   <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, find **Windows Explorer**,
-   click **Restart**. Or set `hideWindowsTaskbar = false` in the settings file
-   and launch MacDock again.
+3. **If MacDock was force-killed** — closing Visual Studio while debugging,
+   End Task, a crash — it never ran its cleanup. Two ways back:
+   - Set `hideWindowsTaskbar = false` in the settings file and launch MacDock
+     again. It notices a taskbar left hidden by a previous run and puts it
+     back, using the state stored in `savedTaskbarState`.
+   - Or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, find **Windows
+     Explorer**, click **Restart**.
+
+> **Note if you debug from Visual Studio:** stopping the debugger *terminates*
+> MacDock rather than closing it, so its cleanup never runs. Quit from the
+> dock's own menu first, then stop debugging.
 
 The taskbar is only ever *hidden* — auto-hide plus `ShowWindow(SW_HIDE)`.
 Explorer keeps running the whole time and nothing is deleted or reconfigured
@@ -110,6 +117,7 @@ screen space on exit. To remove its settings too, delete
 | `showLabels` | `true` | Name label above the hovered tile |
 | `showRecycleBin` | `true` | Recycle Bin tile at the end |
 | `hideWindowsTaskbar` | `true` | Replace the Windows taskbar instead of sitting beside it |
+| `savedTaskbarState` | `-1` | Written by MacDock, not by you: the taskbar's setting before it was hidden, so a killed run can still be undone |
 | `pin` | — | One absolute path per line, in dock order |
 
 `pin` lines are the dock's contents and order. They are rewritten whenever you

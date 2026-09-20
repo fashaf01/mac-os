@@ -23,6 +23,11 @@ struct Settings {
     bool  showLabels          = true;
     bool  showRecycleBin      = true;
     bool  hideWindowsTaskbar  = true;  // the dock replaces it rather than sitting beside it
+
+    // Written while the taskbar is hidden so that a MacDock which was killed
+    // rather than closed can still be undone by the next run. -1 means "we
+    // are not currently hiding anything".
+    int   savedTaskbarState   = -1;
     std::wstring theme        = L"auto"; // auto | dark | light
 
     std::vector<std::wstring> pinned;   // absolute exe paths, in dock order

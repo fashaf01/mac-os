@@ -59,6 +59,15 @@ bool DockWindow::initialize(GraphicsDevice* gfx) {
 
     settings_.load();
     settings_.seedDefaultPinsIfEmpty();
+
+    // A previous run that was terminated rather than closed -- a debugger
+    // detaching, End Task, a crash -- never restored the taskbar. If we are
+    // not about to hide it again, put it back now rather than leaving someone
+    // wondering where it went.
+    if (!settings_.hideWindowsTaskbar && settings_.savedTaskbarState >= 0) {
+        MD_LOG(L"restoring a taskbar left hidden by a previous run");
+        taskbar_.restore(settings_.savedTaskbarState);
+    }
     settings_.save();
 
     theme_ = Theme::resolve(settings_.theme);
@@ -133,7 +142,8 @@ bool DockWindow::initialize(GraphicsDevice* gfx) {
 void DockWindow::shutdown() {
     // First thing, before anything else can fail: the user must not be left
     // without a taskbar because something further down threw.
-    taskbar_.restore();
+    taskbar_.restore(settings_.savedTaskbarState);
+    settings_.save();
 
     stopAnimating();
     watcher_.stop();
@@ -372,10 +382,11 @@ int DockWindow::runMenu(HMENU menu, POINT screenPt, UINT extraFlags) {
 
 void DockWindow::applyTaskbarSetting() {
     if (settings_.hideWindowsTaskbar) {
-        taskbar_.hide();
+        taskbar_.hide(settings_.savedTaskbarState);
     } else {
-        taskbar_.restore();
+        taskbar_.restore(settings_.savedTaskbarState);
     }
+    settings_.save();   // so a run that gets killed can still be undone
     applyGeometry();
 }
 
@@ -397,8 +408,7 @@ void DockWindow::showDockMenu(POINT screenPt) {
     switch (runMenu(menu, screenPt, TPM_BOTTOMALIGN)) {
     case kMenuToggleTaskbar:
         settings_.hideWindowsTaskbar = !taskbar_.hidden();
-        settings_.save();
-        applyTaskbarSetting();
+        applyTaskbarSetting();   // persists the setting itself
         break;
     case kMenuOpenSettings:
         platform::openShellLocation(Settings::configPath());
@@ -824,7 +834,10 @@ LRESULT DockWindow::onMessage(UINT msg, WPARAM wp, LPARAM lp, bool& handled) {
 
     case WM_ENDSESSION:
         // Logging off or shutting down: give the taskbar back before we go.
-        if (wp) taskbar_.restore();
+        if (wp) {
+            taskbar_.restore(settings_.savedTaskbarState);
+            settings_.save();
+        }
         break;
 
     case WM_CLOSE:

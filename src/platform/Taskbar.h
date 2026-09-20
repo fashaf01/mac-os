@@ -13,18 +13,22 @@ namespace md::platform {
 // reaches the bottom edge, which would otherwise fight the dock for the same
 // few pixels.
 //
-// Explorer keeps running throughout; nothing here is permanent, and restore()
-// is safe to call at any time, including when nothing was hidden.
+// Explorer keeps running throughout, so nothing here is permanent. But a
+// process that is *terminated* rather than closed -- a debugger detaching, a
+// crash, End Task -- never gets to run its cleanup, and would leave someone
+// without a taskbar. So the previous state is handed in and out rather than
+// kept in a member: the caller persists it, and the next run can put things
+// back even though it is not the process that took them away.
 class Taskbar {
 public:
-    bool hide();
-    void restore();
+    // savedState is in/out: -1 when nothing is stored yet, otherwise the
+    // ABS_* state from before the taskbar was first hidden.
+    bool hide(int& savedState);
+    void restore(int& savedState);
 
-    bool hidden() const { return hidden_; }
-
-private:
-    bool hidden_ = false;
-    UINT previousState_ = 0;
+    // Asks the window itself rather than trusting a flag of ours, so this is
+    // still right after a previous run was killed mid-flight.
+    bool hidden() const;
 };
 
 } // namespace md::platform
