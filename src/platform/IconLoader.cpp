@@ -91,6 +91,8 @@ ID2D1Bitmap1* IconLoader::iconForPath(const std::wstring& path) {
     if (auto it = cache_.find(key); it != cache_.end()) return it->second.Get();
 
     ComPtr<ID2D1Bitmap1> bitmap = extract(path);
+    if (!bitmap) MD_LOG(L"no icon could be extracted for %s", path.c_str());
+
     ID2D1Bitmap1* raw = bitmap.Get();
     cache_.emplace(key, std::move(bitmap));   // cache misses too, so we retry at most once
     return raw;

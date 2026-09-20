@@ -51,8 +51,9 @@ cheap one.
   that keeps the icon you point at underneath the pointer while everything
   around it grows.
 - **Launch bounce**, press feedback, and hover labels.
-- **Real translucency** — DWM blur behind the panel where available, with a
-  painted-glass fallback that needs no undocumented API.
+- **Painted glass** — translucent panel with an inner top highlight and a
+  hairline edge. Real DWM blur is parked; see
+  [the roadmap](docs/ROADMAP.md#real-backdrop-blur--parked-and-why).
 - **Light and dark themes** that follow Windows, with a contrast-audited
   palette (see [the design notes](docs/DESIGN.md)).
 - **Work-area reservation**, so maximized windows stop at the dock instead of
@@ -124,9 +125,9 @@ menu. Every key is documented in [BUILD.md](BUILD.md#settings).
   antivirus flags and Windows updates break. It is deliberately out of scope.
 - **The Start menu still belongs to Windows.** The <kbd>Win</kbd> key still
   opens it, and it still looks like Windows. A macOS-style menu bar is Phase 3.
-- **Blur is best-effort.** The API behind it is undocumented; when it is
-  unavailable, or transparency effects are off in Windows Settings, the dock
-  falls back to painted glass. Set `backdropBlur = false` to force that.
+- **No real backdrop blur yet.** The panel is translucent and layered, but
+  what is behind it is not blurred. The reason, and the route that should
+  work, are in [the roadmap](docs/ROADMAP.md#real-backdrop-blur--parked-and-why).
 - **No Apple assets.** Icons, fonts and artwork here are our own or the
   system's. This reimplements a layout and a set of interactions, not Apple's
   copyrighted design assets.

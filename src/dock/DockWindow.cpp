@@ -93,12 +93,6 @@ bool DockWindow::initialize(GraphicsDevice* gfx) {
     tray_.add(hwnd_, WM_MD_TRAY, L"MacDock");
     applyTaskbarSetting();
 
-    if (settings_.backdropBlur) {
-        if (backdrop_.create(hwnd_)) {
-            backdrop_.setTint(theme_.panelFill);
-        }
-    }
-
     watcher_.start([this] {
         // Runs on our own thread from the WinEvent hook. Post rather than
         // rescan: a single app launch can emit dozens of window events.
@@ -126,7 +120,13 @@ bool DockWindow::initialize(GraphicsDevice* gfx) {
     invalidate();
     renderNow();
 
-    MD_LOG(L"dock ready with %zu item(s)", model_.size());
+    MD_LOG(L"dock ready with %zu item(s), scale %.2f, window %dx%d",
+           model_.size(), scale_, widthPx(), heightPx());
+    for (const auto& item : model_.items()) {
+        MD_LOG(L"  tile: kind=%d running=%d %s",
+               static_cast<int>(item.kind), item.running ? 1 : 0,
+               item.name.empty() ? item.path.c_str() : item.name.c_str());
+    }
     return true;
 }
 
@@ -147,7 +147,6 @@ void DockWindow::shutdown() {
         recycleBinPidl_ = nullptr;
     }
 
-    backdrop_.destroy();
     tray_.remove();
     appBar_.unregisterBar();
 
@@ -517,7 +516,6 @@ void DockWindow::reloadSettings() {
     settings_.seedDefaultPinsIfEmpty();
 
     theme_ = Theme::resolve(settings_.theme);
-    if (backdrop_.available()) backdrop_.setTint(theme_.panelFill);
 
     model_.rebuild(settings_);
     model_.syncRunningState(watcher_, settings_);
@@ -526,28 +524,6 @@ void DockWindow::reloadSettings() {
 
     applyTaskbarSetting();   // also calls applyGeometry()
     invalidate();
-}
-
-void DockWindow::updateBackdrop(const DockLayoutResult& layout) {
-    if (!backdrop_.available()) return;
-
-    if (model_.size() == 0 || reveal_.value() < 0.02f) {
-        backdrop_.setVisible(false);
-        return;
-    }
-
-    RECT client{};
-    GetWindowRect(hwnd_, &client);
-
-    RECT bounds{
-        client.left + static_cast<LONG>(std::floor(layout.panel.left)),
-        client.top  + static_cast<LONG>(std::floor(layout.panel.top)),
-        client.left + static_cast<LONG>(std::ceil(layout.panel.right)),
-        client.top  + static_cast<LONG>(std::ceil(layout.panel.bottom)),
-    };
-
-    backdrop_.setBounds(bounds, static_cast<int>(currentMetrics().panelRadius));
-    backdrop_.setVisible(true);
 }
 
 // ----------------------------------------------------------------- painting
@@ -586,13 +562,8 @@ void DockWindow::drawPanel(ID2D1DeviceContext* dc, const RectF& panel, float rad
     const auto rounded = D2D1::RoundedRect(
         D2D1::RectF(panel.left, panel.top, panel.right, panel.bottom), radius, radius);
 
-    // The painted glass. When the acrylic backdrop window is live it is
-    // already supplying the tint and blur, so we only lay down the edge
-    // treatment here and skip the fill.
-    if (!backdrop_.available()) {
-        setBrush(theme_.panelFill);
-        dc->FillRoundedRectangle(rounded, brush_.Get());
-    }
+    setBrush(theme_.panelFill);
+    dc->FillRoundedRectangle(rounded, brush_.Get());
 
     // Inner top highlight: the single detail that makes a flat translucent
     // rectangle read as a pane of glass rather than a grey box.
@@ -709,10 +680,6 @@ void DockWindow::onRender(ID2D1DeviceContext* dc, float wPx, float hPx) {
 
     const DockLayoutResult layout = buildLayout();
     const float radius = currentMetrics().panelRadius;
-
-    // Position the blur pane before painting, so the glass and its contents
-    // land on screen in the same compositor frame.
-    updateBackdrop(layout);
 
     drawSoftShadow(dc, layout.panel, radius);
     drawPanel(dc, layout.panel, radius);
@@ -844,8 +811,7 @@ LRESULT DockWindow::onMessage(UINT msg, WPARAM wp, LPARAM lp, bool& handled) {
             const Theme updated = Theme::resolve(settings_.theme);
             if (updated.dark != theme_.dark) {
                 theme_ = updated;
-                if (backdrop_.available()) backdrop_.setTint(theme_.panelFill);
-                auditContrast(theme_);
+                            auditContrast(theme_);
                 invalidate();
             }
         }

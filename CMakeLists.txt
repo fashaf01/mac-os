@@ -33,7 +33,6 @@ add_executable(macdock WIN32
     src/platform/WindowWatcher.cpp
     src/platform/Launcher.cpp
     src/platform/AppBar.cpp
-    src/platform/AcrylicBackdrop.cpp
     src/platform/TrayIcon.cpp
     src/platform/Taskbar.cpp
 

@@ -5,7 +5,6 @@
 #include "design/Theme.h"
 #include "dock/DockLayout.h"
 #include "dock/DockModel.h"
-#include "platform/AcrylicBackdrop.h"
 #include "platform/AppBar.h"
 #include "platform/IconLoader.h"
 #include "platform/Taskbar.h"
@@ -53,7 +52,6 @@ private:
     void scheduleRefresh();
     void refreshNow();
     void reloadSettings();
-    void updateBackdrop(const DockLayoutResult& layout);
 
     // --- painting helpers -----------------------------------------------
     void setBrush(const Color& c);
@@ -73,7 +71,6 @@ private:
     platform::AppBar         appBar_;
     platform::TrayIcon       tray_;
     platform::Taskbar        taskbar_;
-    platform::AcrylicBackdrop backdrop_;
     TextRenderer             text_;
 
     ComPtr<ID2D1SolidColorBrush> brush_;

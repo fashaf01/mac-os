@@ -34,6 +34,24 @@ A 24 px bar across the top of the screen:
 - macOS-style desktop context menu.
 - Handle Explorer reclaiming the work area after a restart.
 
+## Real backdrop blur — parked, and why
+
+The first attempt put the blur in its own small window kept exactly over the
+panel, because DWM applies blur to a whole window rectangle and the dock's own
+window spans the full screen width. That window was created owned by the dock
+window, and **Windows always draws an owned window above its owner**, so the
+blur pane covered every icon. What reached the screen was the blur pane alone:
+a flat tinted rectangle with no highlight, no hairline and no contents.
+
+Re-ordering two top-most windows every frame to keep one exactly beneath the
+other is fragile, so the separate window is gone and the dock paints its own
+glass. That is the part that was always going to work, and the top highlight
+does most of the job of making it read as a pane rather than a grey box.
+
+The route worth trying next is `IDCompositionDevice3::CreateBackdropBrush`,
+which blurs what is behind a *visual* rather than a window, so it composes with
+the existing visual tree instead of fighting it for z-order.
+
 ## Phase 5 — polish and shipping
 
 - A settings app, so the INI file is not the only interface.

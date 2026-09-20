@@ -109,7 +109,6 @@ screen space on exit. To remove its settings too, delete
 | `showRunningApps` | `true` | Temporary tiles for running apps you have not pinned |
 | `showLabels` | `true` | Name label above the hovered tile |
 | `showRecycleBin` | `true` | Recycle Bin tile at the end |
-| `backdropBlur` | `true` | Real DWM blur behind the panel; `false` uses painted glass |
 | `hideWindowsTaskbar` | `true` | Replace the Windows taskbar instead of sitting beside it |
 | `pin` | — | One absolute path per line, in dock order |
 
@@ -122,10 +121,14 @@ use *Keep in Dock* or *Remove from Dock*.
 failure there means the graphics driver needs updating; MacDock falls back to
 WARP software rendering but says so in the log.
 
-**No blur, just a flat translucent bar.** Either transparency effects are off
-(*Settings → Personalisation → Colours → Transparency effects*), or the
-undocumented blur API is unavailable on your build. The painted fallback is
-intentional, not a failure. Set `backdropBlur = false` to stop it trying.
+**No blur behind the dock.** Expected for now — the panel is translucent but
+what is behind it is not blurred. See
+[the roadmap](docs/ROADMAP.md#real-backdrop-blur--parked-and-why).
+
+**The dock is an empty bar with no icons.** That was a real bug, fixed: a blur
+pane owned by the dock window was covering them. If you still see it, send
+`%LOCALAPPDATA%\MacDock\macdock.log` — it lists every tile and every icon
+that failed to load.
 
 **Maximized windows cover the dock.** `reserveWorkArea` must be `true`, and
 Explorer sometimes reclaims the work area after a crash — restarting MacDock

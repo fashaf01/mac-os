@@ -22,7 +22,6 @@ struct Settings {
     bool  showRunningApps     = true;  // temporary tiles for unpinned running apps
     bool  showLabels          = true;
     bool  showRecycleBin      = true;
-    bool  backdropBlur        = true;  // real DWM blur behind the panel
     bool  hideWindowsTaskbar  = true;  // the dock replaces it rather than sitting beside it
     std::wstring theme        = L"auto"; // auto | dark | light
 
